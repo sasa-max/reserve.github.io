@@ -1,11 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>text.txtへのデータの保存</title>
 </head>
 <body>
-    hello
+
+    <div id="output">ここにデータが表示されます</div>
+
+    <br>
+    月：<input id="month" placeholder="3"> <br>
+    日：<input id="date" placeholder="31"> <br>
+    お名前：<input id="name"> <br>
+    <button onclick="saveDataToFile()">データ保存</button>
+    <button onclick="getDataFromLocalStorage()">データを削除</button>
+
+    <script>
+        const outputElement = document.getElementById("output");
+        var data = localStorage.getItem("text.txt");
+        window.onload = function(){
+            const outputElement = document.getElementById("output");
+            outputElement.textContent = data;
+        }
+
+        function saveDataToFile() {
+            const month = document.getElementById("month").value;
+            const date = document.getElementById("date").value;
+            const name = document.getElementById("name").value;
+
+            var reserved = month + "/" + date + "　" + "(" + name + ")"
+            // ローカルストレージにデータを保存
+            localStorage.setItem("text.txt",data + reserved);
+
+            alert("データがtext.txtに保存されました。");
+            data = data + reserved;
+            outputElement.textContent = data;
+        }
+
+        function getDataFromLocalStorage() {
+            // LocalStorageからデータを取得
+            localStorage.setItem("text.txt","");
+            data = localStorage.getItem("text.txt");
+            outputElement.textContent = data;
+        }
+    </script>
 </body>
 </html>
