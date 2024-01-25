@@ -1,48 +1,204 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>text.txtへのデータの保存</title>
+    <title>TODOリスト</title>
+    <style>
+        html {
+            background-color: rgb(240, 240, 240);
+            font-size:20px;
+        }
+        .date {
+            width:150px;
+            height:50px;
+        }
+        .header{
+          text-align: center;
+          background-color: aquamarine;
+        }
+        .buttons{
+          text-align: center;
+        }
+        button{
+          background-color: aquamarine;
+          width:70px;
+          height:40px;
+        }
+        .ym{
+          width:200px;
+          height:20px;
+          text-align: center;
+        }
+        #btns{
+          text-align: right;
+        }
+    </style>
 </head>
 <body>
+    <div class="header">
+    <h1>車予約サービス</h1>
+    </div>
+    <div class="buttons">
+      <button id="prevMonth">前の月</button>
+      <button id="nextMonth">次の月</button>
+    </div>
+    <div id="yam"><input id="currentyear" class = "ym">年<input id="currentmonth" class="ym">月</div>
+    <div id="calendar"></div>
+    <div id="btns"><button id="hzn" onclick="hzn()">保存</button></div>
 
-    <div id="output">ここにデータが表示されます</div>
+<script>
 
-    <br>
-    月：<input id="month" placeholder="3"> <br>
-    日：<input id="date" placeholder="31"> <br>
-    お名前：<input id="name"> <br>
-    <button onclick="saveDataToFile()">データ保存</button>
-    <button onclick="getDataFromLocalStorage()">データを削除</button>
+const calendarEl = document.getElementById('calendar');
+const date = new Date();
+var currentYear = date.getFullYear();
+var currentMonth = date.getMonth();
+const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-    <script>
-        const outputElement = document.getElementById("output");
-        var data = localStorage.getItem("text.txt");
-        window.onload = function(){
-            const outputElement = document.getElementById("output");
-            outputElement.textContent = data;
-        }
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+var iptmonth = document.getElementById('currentmonth');
+var iptyear = document.getElementById('currentyear');
 
-        function saveDataToFile() {
-            const month = document.getElementById("month").value;
-            const date = document.getElementById("date").value;
-            const name = document.getElementById("name").value;
+iptyear.value = currentYear;
+iptmonth.value = currentMonth + 1;
 
-            var reserved = month + "/" + date + "　" + "(" + name + ")"
-            // ローカルストレージにデータを保存
-            localStorage.setItem("text.txt",data + reserved);
+let currentDisplayedMonth = currentMonth + 1;
 
-            alert("データがtext.txtに保存されました。");
-            data = data + reserved;
-            outputElement.textContent = data;
-        }
+async function fetchData() {
+    try {
+        const response = await fetch('./api/v1/list');
+        const todoList = await response.json();
 
-        function getDataFromLocalStorage() {
-            // LocalStorageからデータを取得
-            localStorage.setItem("text.txt","");
-            data = localStorage.getItem("text.txt");
-            outputElement.textContent = data;
-        }
+        // todoListを返す
+        return todoList;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        // エラーが発生した場合は例外をスローまたは適切な処理を行う
+        throw error;
+    }
+}
+
+async function generateCalendar(year, month) {
+  console.log(month);
+  // カレンダーのHTML構造を生成
+  var data = await fetchData();
+  
+  var flattenedData = data.flat();  // ネストされた配列を平坦化
+  var rmonth = month + 1;
+console.log('Flattened Data:', flattenedData);
+
+var filteredData = flattenedData.filter(item => item.year === year.toString());
+console.log('Filtered Data by Year:', filteredData);
+if(month === 0){
+  var filteredData2 = filteredData.filter(item => item.month === rmonth.toString());
+} else {
+  var filteredData2 = filteredData.filter(item => item.month === month.toString());
+}
+console.log('Filtered Data by Month:', filteredData2);
+let calendarHtml = '<table><thead><tr>';
+for (let i = 0; i < 7; i++) {
+  calendarHtml += `<th>${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</th>`;
+}
+calendarHtml += '</tr></thead><tbody><tr>';
+
+for (let i = 1; i <= daysInMonth; i++) {
+  const dayOfWeek = new Date(currentYear, currentMonth, i).getDay();
+  if (i === 1) {
+    calendarHtml += '<tr>';
+    for (let j = 0; j < dayOfWeek; j++) {
+      calendarHtml += '<td></td>';
+    }
+  }
+  
+var matchingItem = filteredData2.reverse().find(item => item.date === i.toString());
+
+if (matchingItem) {
+    // dateがiに一致する要素が存在する場合、そのvalueを取得
+    var matchingValue = matchingItem.value;
+
+    // calendarHtmlに該当の値を代入
+    calendarHtml += `<td><input id="${i}" value="${matchingValue}" class="date">${i}</input></td>`;
+    console.log(matchingValue);
+} else {
+    // dateがiに一致する要素が存在しない場合、デフォルトの値などを代入
+    calendarHtml += `<td><input id="${i}" value="" class="date">${i}</input></td>`;
+}
+  if (dayOfWeek === 6) {
+    calendarHtml += '</tr>';
+    if (i < daysInMonth) {
+      calendarHtml += '<tr>';
+    }
+  } else if (i === daysInMonth) {
+    for (let j = dayOfWeek + 1; j <= 6; j++) {
+      calendarHtml += '<td></td>';
+    }
+    calendarHtml += '</tr>';
+      }
+    }
+    calendarHtml += '</tbody></table>';
+    calendarEl.innerHTML = calendarHtml;
+}
+
+prevMonthBtn.addEventListener('click', () => {
+  currentDisplayedMonth--;
+  
+  if (currentDisplayedMonth < 1) {
+    currentDisplayedMonth = 12;
+    currentYear--;
+    iptyear.value = currentYear;
+  }
+
+  generateCalendar(currentYear, currentDisplayedMonth);
+
+  iptmonth.value = currentDisplayedMonth;
+
+});
+
+nextMonthBtn.addEventListener('click', () => {
+  currentDisplayedMonth++;
+  console.log(currentDisplayedMonth);
+  if (currentDisplayedMonth > 12) {
+    currentDisplayedMonth = 1;
+    currentYear++;
+    iptyear.value = currentYear;
+  }
+  iptmonth.value = currentDisplayedMonth;
+  generateCalendar(currentYear, currentDisplayedMonth);
+
+});
+generateCalendar(currentYear, currentDisplayedMonth);
+
+
+async function hzn() {
+  var inputElements = document.querySelectorAll('input');
+
+  // idとvalueの情報を格納するためのリスト
+  var inputList = [];
+
+  // 各inputタグのidとvalueを取得し、リストに追加
+  inputElements.forEach(function(input) {
+    if(input.value == ''){
+
+    } else if(input.id != "currentmonth" && input.id != "currentyear"){
+    var inputInfo = {
+      year:iptyear.value,
+      month:iptmonth.value,
+      date: input.id,
+      value: input.value,
+    };
+    inputList.push(inputInfo);
+  }
+});
+alert('保存完了しました。');
+            // Fetch APIを使って、Web APIにPOSTでデータを送信する
+     return fetch('./api/v1/add', {
+       method: 'POST', // POSTメソッドで送信する,
+       headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(inputList),
+   }).then((response) => response.json());
+} 
     </script>
 </body>
 </html>
